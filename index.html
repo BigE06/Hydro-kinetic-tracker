@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <title>Hydro Kinetic</title>
+    
+    <style>
+        :root {
+            --primary: #00e5ff;
+            --secondary: #2979ff;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-deep: #0f172a;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: radial-gradient(circle at top right, #1e293b, var(--bg-deep));
+            color: var(--text-main);
+            min-height: 100vh; /* Changed to min-height for scrolling if needed */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* --- Header --- */
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { font-weight: 200; font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; opacity: 0.9; }
+        p.subtitle { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; }
+
+        /* --- The Kinetic Tank --- */
+        .tank-wrapper {
+            position: relative;
+            width: 240px;
+            height: 240px;
+            margin: 0 auto 30px auto;
+            border-radius: 50%;
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            box-shadow: 
+                20px 20px 50px rgba(0,0,0,0.5),
+                -10px -10px 30px rgba(255,255,255,0.05),
+                inset 0 0 0 2px rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .tank {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+            background: rgba(0,0,0,0.3);
+            z-index: 1;
+        }
+
+        .water {
+            position: absolute;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background: linear-gradient(to top, var(--secondary), var(--primary));
+            transform: translateY(100%);
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Wave animation */
+        .water::before, .water::after {
+            content: ""; position: absolute; width: 200%; height: 200%;
+            top: -150%; left: -50%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 40%;
+            animation: rotate 8s linear infinite;
+        }
+        .water::after {
+            border-radius: 35%;
+            background: rgba(255, 255, 255, 0.05);
+            animation: rotate 12s linear infinite reverse;
+        }
+        @keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .status-overlay {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center; z-index: 20;
+            pointer-events: none; mix-blend-mode: overlay;
+        }
+        .percentage { font-size: 3.5rem; font-weight: 700; line-height: 1; }
+        .amount-text { font-size: 0.9rem; opacity: 0.8; margin-top: 0.5rem; }
+
+        /* --- Quick Actions --- */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 1rem;
+            border-radius: 16px;
+            font-size: 1rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .btn:active { transform: scale(0.96); background: rgba(255,255,255,0.15); }
+        .btn small { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+
+        /* --- Manual Adjuster Section --- */
+        .adjuster-container {
+            background: rgba(0,0,0,0.2);
+            border-radius: 16px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .adjuster-input {
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-size: 1.2rem;
+            width: 80px;
+            outline: none;
+            font-weight: bold;
+        }
+        /* Remove arrows from number input */
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .btn-mini {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            border: none;
+            font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .btn-minus { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+        .btn-plus { background: rgba(0, 229, 255, 0.2); color: var(--primary); }
+
+        /* --- History / Calendar --- */
+        .history-section {
+            margin-top: auto;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid var(--glass-border);
+        }
+        .history-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* The Week Grid */
+        .week-grid {
+            display: flex;
+            justify-content: space-between;
+        }
+        .day-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .day-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s;
+        }
+        .day-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* Status Colors */
+        .status-good { background-color: var(--primary); box-shadow: 0 0 8px var(--primary); }
+        .status-ok { background-color: var(--warning); }
+        .status-bad { background-color: var(--danger); opacity: 0.6; }
+        .status-empty { background-color: rgba(255,255,255,0.1); }
+        .current-day .day-label { color: white; font-weight: bold; }
+
+        /* --- Particles (Confetti) --- */
+        .particle {
+            position: absolute;
+            background: var(--primary); 
+            border-radius: 4px; 
+            pointer-events: none;
+            z-index: 15; 
+            box-shadow: 0 0 10px rgba(255,255,255,0.7);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>Hydro Kinetic</h1>
+            <p class="subtitle">Daily Goal: 2500ml</p>
+        </header>
+
+        <div class="tank-wrapper">
+            <div class="tank">
+                <div class="water" id="waterWave"></div>
+            </div>
+            <div class="status-overlay">
+                <div class="percentage" id="pctDisplay">0%</div>
+                <div class="amount-text"><span id="amountDisplay">0</span> / 2500 ml</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="updateWater(250)">
+                <span>+250 ml</span>
+                <small>Glass</small>
+            </button>
+            <button class="btn" onclick="updateWater(500)">
+                <span>+500 ml</span>
+                <small>Bottle</small>
+            </button>
+        </div>
+
+        <div class="adjuster-container">
+            <button class="btn-mini btn-minus" onclick="manualUpdate(-1)">−</button>
+            <input type="number" id="customInput" value="100" class="adjuster-input">
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-right: 10px;">ml</div>
+            <button class="btn-mini btn-plus" onclick="manualUpdate(1)">+</button>
+        </div>
+
+        <div class="history-section">
+            <div class="history-title">
+                <span>Last 7 Days</span>
+                <span id="streakCount">0 Day Streak</span>
+            </div>
+            <div class="week-grid" id="weekGrid">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const GOAL = 2500;
+        let currentAmount = 0;
+        
+        // This object will hold data: "2023-10-27": 2500
+        let historyData = {}; 
+
+        window.addEventListener('load', () => {
+            loadData();
+            checkNewDay();
+            renderUI();
+            renderHistory();
+        });
+
+        function loadData() {
+            const savedAmount = localStorage.getItem('hydroCurrent');
+            const savedHistory = localStorage.getItem('hydroHistory');
+            
+            if (savedAmount) currentAmount = parseInt(savedAmount);
+            if (savedHistory) historyData = JSON.parse(savedHistory);
+        }
+
+        // Logic to handle day switching
+        function checkNewDay() {
+            const todayStr = new Date().toISOString().split('T')[0]; // "2023-10-27"
+            const lastSavedDate = localStorage.getItem('hydroLastDate');
+
+            if (lastSavedDate && lastSavedDate !== todayStr) {
+                // It's a new day! Save yesterday's final total to history
+                // Note: In a real app we'd save it when the user makes their last edit, 
+                // but this ensures we catch the transition.
+                historyData[lastSavedDate] = currentAmount; // Actually this saves current, which is wrong if we reset.
+                                                            // We rely on 'saveData' updating historyData in real time.
+                
+                // Reset for today
+                currentAmount = 0;
+            }
+            localStorage.setItem('hydroLastDate', todayStr);
+            saveData();
+        }
+
+        function updateWater(amount) {
+            const previousAmount = currentAmount;
+            currentAmount += amount;
+            if (currentAmount < 0) currentAmount = 0;
+            // No cap on top, but visual cap is 100%
+            
+            saveData();
+
+            // Trigger confetti if crossing goal
+            if (previousAmount < GOAL && currentAmount >= GOAL) {
+                fireConfetti();
+                setTimeout(fireConfetti, 300);
+            }
+            renderUI();
+        }
+
+        function manualUpdate(multiplier) {
+            const inputVal = document.getElementById('customInput').value;
+            const val = parseInt(inputVal);
+            if(isNaN(val) || val <= 0) return;
+            
+            updateWater(val * multiplier);
+        }
+
+        function saveData() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            historyData[todayStr] = currentAmount; // Update today's entry in history live
+            
+            localStorage.setItem('hydroCurrent', currentAmount);
+            localStorage.setItem('hydroHistory', JSON.stringify(historyData));
+        }
+
+        function renderUI() {
+            // Cap percentage at 100 for the wave visual, but text can go higher
+            const visualPct = Math.min(100, Math.round((currentAmount / GOAL) * 100));
+            const realPct = Math.round((currentAmount / GOAL) * 100);
+
+            document.getElementById('pctDisplay').innerText = `${realPct}%`;
+            document.getElementById('amountDisplay').innerText = currentAmount;
+
+            const translateValue = 100 - visualPct;
+            document.getElementById('waterWave').style.transform = `translateY(${translateValue}%)`;
+
+            if(realPct >= 100) {
+                document.getElementById('waterWave').style.filter = 'brightness(1.1) hue-rotate(10deg)';
+            } else {
+                document.getElementById('waterWave').style.filter = 'none';
+            }
+            
+            // Re-render history to update "Today's" dot live
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const grid = document.getElementById('weekGrid');
+            grid.innerHTML = '';
+            
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const today = new Date();
+            let streak = 0;
+
+            // Generate last 6 days + Today (Total 7)
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(today.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+                const dayName = days[d.getDay()];
+                
+                // Get amount from history
+                const amt = historyData[dateStr] || 0;
+                const ratio = amt / GOAL;
+
+                // Determine Color Class
+                let statusClass = 'status-empty';
+                if (amt > 0) {
+                    if (ratio >= 1.0) { statusClass = 'status-good'; streak++; }
+                    else if (ratio >= 0.8) { statusClass = 'status-ok'; streak = 0; } // Streak breaks if not 100%? Or maybe permissive? Strict for now.
+                    else { statusClass = 'status-bad'; streak = 0; }
+                }
+
+                // If it's a future day (not possible here) or empty past day
+                if(amt === 0 && i !== 0) streak = 0; 
+
+                // Is it today?
+                const isToday = (i === 0) ? 'current-day' : '';
+
+                const col = document.createElement('div');
+                col.className = `day-col ${isToday}`;
+                col.innerHTML = `
+                    <div class="day-dot ${statusClass}"></div>
+                    <div class="day-label">${dayName}</div>
+                `;
+                grid.appendChild(col);
+            }
+            
+            // Simple Streak Logic (only counts if 100% met)
+            // Note: This simple loop recalculates streak based on the 7 day window. 
+            // For a real app, you'd calculate streak over all history.
+            document.getElementById('streakCount').innerText = `${streak} Day Streak`;
+        }
+
+        // --- Confetti Engine ---
+        function fireConfetti() {
+            const colors = ['#00e5ff', '#2979ff', '#ffffff', '#FFD700', '#ff00ff'];
+            const container = document.body;
+            const maxSpread = window.innerWidth * 0.6;
+            
+            for (let i = 0; i < 150; i++) {
+                const p = document.createElement('div');
+                p.classList.add('particle');
+                p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                const size = Math.random() * 7 + 5 + 'px';
+                p.style.width = size; p.style.height = size;
+                p.style.left = '50%'; p.style.top = '40%';
+                
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * maxSpread + 100;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+                const rotation = Math.random() * 720 - 360;
+
+                p.animate([
+                    { transform: 'translate(-50%, -50%) scale(1) rotate(0deg)', opacity: 1 },
+                    { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.5) rotate(${rotation}deg)`, opacity: 0 }
+                ], { duration: 2000 + Math.random() * 1500, easing: 'cubic-bezier(0.25, 1, 0.5, 1)', iterations: 1 });
+                container.appendChild(p);
+                setTimeout(() => p.remove(), 3500);
+            }
+        }
+    </script>
+</body>
+</html>
